@@ -1,0 +1,6 @@
+#!/bin/bash
+docker stack rm urlshortner
+for host in "$@"
+do
+	ssh $host "docker container stop cassandra-node; docker container rm cassandra-node; docker rm -f $(docker ps -a -q); docker service rm $(docker service ls -q); docker ps -aq --no-trunc -f status=exited | xargs docker rm; docker swarm leave --force;"
+done

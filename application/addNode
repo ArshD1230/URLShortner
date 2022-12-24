@@ -1,0 +1,13 @@
+#!/bin/bash
+USAGE="Usage: $0 NEWIP"
+
+if [ "$#" != "1" ]; then
+        echo "$USAGE"
+        exit 1
+fi
+
+
+scp -r ../../repo_a2group47 student@$1:/home/student/
+CMD=`docker swarm join-token worker | tail -n 2`
+ssh $1 "cd repo_a2group47/application; docker swarm leave --force; $CMD;"
+docker stack deploy -c docker-compose.yml urlshortner

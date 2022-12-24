@@ -1,0 +1,68 @@
+version: "3.8"
+services:
+  writer:
+    image: dhill393/writer:v1.1
+    networks:
+      - webnet
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+  urlshortner:
+    image: dhill393/urlshortner:v2.1
+    ports:
+      - "4000:80"
+    deploy:
+      replicas: 4
+      placement:
+        max_replicas_per_node: 1
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - "urlshortner:/app"
+    networks:
+      - webnet
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+    networks:
+      - webnet
+  redis-master:
+    image: redis
+    ports:
+      - "6379:6379"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+        max_replicas_per_node: 1 
+      restart_policy:
+        condition: on-failure
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-random
+    volumes:
+      - "../data/redis:/data"
+    networks:
+      - webnet
+  redis-slave:
+    image: redis
+    ports:
+      - "6479:6479"
+    deploy:
+      replicas: 3
+      placement:
+        max_replicas_per_node: 1
+        constraints: [node.role == worker]
+      restart_policy:
+        condition: on-failure
+    command: redis-server --slaveof redis-master 6379
+    networks:
+      - webnet 
+networks:
+  webnet:
